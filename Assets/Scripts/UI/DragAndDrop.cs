@@ -15,6 +15,7 @@ class DragAndDrop : MonoBehaviour {
 
     void Start() {
         this_piece = GetComponent<Piece>(); // Get piece's component
+        board = this_piece.board;
     }
 
     void Update() {

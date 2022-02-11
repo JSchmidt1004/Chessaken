@@ -9,6 +9,9 @@ using System;
 ==============================
 */
 public class Board : MonoBehaviour {
+
+    public GameObject testObject;
+
     private List<Square> hovered_squares = new List<Square>(); // List squares to hover
     private Square closest_square; // Current closest square when dragging a piece
     private int cur_theme = 0;
@@ -49,10 +52,19 @@ public class Board : MonoBehaviour {
 
     [SerializeField]
     List<Piece> pieces = new List<Piece>(); // List of all pieces in the game (32)
+    [SerializeField]
+    List<Piece> piecesCopy = new List<Piece>(); // List of all pieces in the game (32)
+
+    [SerializeField]
+    List<Piece> piecePrefabs = new List<Piece>(); // List of all of the piece prefabs (12)
+
+    [SerializeField]
+    BoardSetupType board_setup = BoardSetupType.Chess960;
 
     void Start() {
         setBoardTheme();
         addSquareCoordinates(); // Add "local" coordinates to all squares
+        spawnPieces();
         setStartPiecesCoor(); // Update all piece's coordinate
     }
 
@@ -261,9 +273,97 @@ public class Board : MonoBehaviour {
 
     /*
     ---------------
+    Pieces creation functions
+    ---------------
+    */
+
+    private Piece getPiecePrefab(string name, int team)
+    {
+        for (int i = 0; i < piecePrefabs.Count; ++i)
+        {
+            Piece piece = piecePrefabs[i];
+            if (piece.team == team)
+            {
+                if (piece.piece_name == name) return piece;
+            }
+        }
+
+        return null;
+    }
+
+    private void spawnPieces()
+    {
+        switch(board_setup)
+        {
+            case BoardSetupType.Basic:
+                spawnBasic();
+                break;
+            case BoardSetupType.Chess960:
+                spawn960();
+                break;
+        }
+    }
+
+    private void spawnPiece(string name, int team, Coordinate coordinate)
+    {
+        Piece piecePrefab = getPiecePrefab(name, team);
+
+        if (piecePrefab != null)
+        {
+            Square square = getSquareFromCoordinate(coordinate);
+            Piece piece = Instantiate(piecePrefab, square.coor.pos, Quaternion.identity);
+            pieces.Add(piece);
+        }
+
+    }
+
+    private void spawnPawns()
+    {
+        //Coord goes 0-7, from top right being (0,0) to bottom left being (7,7)
+        for (int i = 0; i < 8; i++)
+        {
+            spawnPiece("Pawn", -1, new Coordinate(i, 6));
+            spawnPiece("Pawn", 1, new Coordinate(i, 1));
+        }
+    }
+
+    private void spawnBasic()
+    {
+        spawnPawns();
+
+        //Spawn white pieces
+        spawnPiece("Tower", -1, new Coordinate(0, 7));
+        spawnPiece("Horse", -1, new Coordinate(1, 7));
+        spawnPiece("Bishop", -1, new Coordinate(2, 7));
+        spawnPiece("King", -1, new Coordinate(3, 7));
+        spawnPiece("Queen", -1, new Coordinate(4, 7));
+        spawnPiece("Bishop", -1, new Coordinate(5, 7));
+        spawnPiece("Horse", -1, new Coordinate(6, 7));
+        spawnPiece("Tower", -1, new Coordinate(7, 7));
+
+        //Spawn black pieces
+        spawnPiece("Tower", 1, new Coordinate(0, 0));
+        spawnPiece("Horse", 1, new Coordinate(1, 0));
+        spawnPiece("Bishop", 1, new Coordinate(2, 0));
+        spawnPiece("King", 1, new Coordinate(3, 0));
+        spawnPiece("Queen", 1, new Coordinate(4, 0));
+        spawnPiece("Bishop", 1, new Coordinate(5, 0));
+        spawnPiece("Horse", 1, new Coordinate(6, 0));
+        spawnPiece("Tower", 1, new Coordinate(7, 0));
+    }
+
+    private void spawn960()
+    {
+        spawnPawns();
+
+
+    }
+
+    /*
+    ---------------
     Game related functions
     ---------------
-    */ 
+    */
     // Change current turn, we check if a team lost before rotating the camera
     public void changeTurn() {
         cur_turn = (cur_turn == -1) ? 1 : -1;
