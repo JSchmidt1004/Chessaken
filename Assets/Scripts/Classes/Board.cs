@@ -273,7 +273,7 @@ public class Board : MonoBehaviour {
 
     /*
     ---------------
-    Pieces creation functions
+    Piece creation functions
     ---------------
     */
 
@@ -289,6 +289,17 @@ public class Board : MonoBehaviour {
         }
 
         return null;
+    }
+
+    private bool checkPieceSafe(int[] positions, int pieceToCheck)
+    {
+        for(int i = 0; i < positions.Length; i++)
+        {
+            if (i == pieceToCheck) continue;
+            if (positions[i] == positions[pieceToCheck]) return false;
+        }
+
+        return true;
     }
 
     private void spawnPieces()
@@ -329,6 +340,7 @@ public class Board : MonoBehaviour {
 
     private void spawnBasic()
     {
+        //Coord goes 0-7, from top right being (0,0) to bottom left being (7,7)
         spawnPawns();
 
         //Spawn white pieces
@@ -354,9 +366,92 @@ public class Board : MonoBehaviour {
 
     private void spawn960()
     {
+        //Coord goes 0-7, from top right being (0,0) to bottom left being (7,7)
         spawnPawns();
 
+        //Order goes tower1, tower2, horse1, horse2, bishop1, bishop2, king, queen
+        int[] positions = new int[8];
+        for (int i = 0; i < positions.Length; i++)
+        {
+            positions[i] = -1;
+        }
 
+        //Spawn Rooks
+        do
+        {
+            positions[0] = UnityEngine.Random.Range(0, 8);
+            positions[1] = UnityEngine.Random.Range(0, 8);
+
+        } while (Math.Abs(positions[0] - positions[1]) < 2);
+
+
+        //Spawn King
+        if (positions[0] < positions[1]) positions[6] = UnityEngine.Random.Range(positions[0] + 1, positions[1]);
+        else positions[6] = UnityEngine.Random.Range(positions[1] + 1, positions[0]);
+
+
+        //Spawn Bishops
+        bool bishopsPlaced = false;
+        do
+        {
+            positions[4] = UnityEngine.Random.Range(0, 8);
+            positions[5] = UnityEngine.Random.Range(0, 8);
+
+            //Check that they aren't on already owned spaces
+            bool bishop1Safe = checkPieceSafe(positions, 4);
+            bool bishop2Safe = checkPieceSafe(positions, 5);
+
+            if (!bishop1Safe) continue;
+            if (!bishop2Safe) continue;
+
+            //Check that they're on different tiles
+            if ((positions[4] % 2 != positions[5] % 2)) bishopsPlaced = true;
+
+        } while (!bishopsPlaced);
+
+
+        //Spawn the rest
+        bool othersPlaced = false;
+        do
+        {
+            positions[2] = UnityEngine.Random.Range(0, 7);
+            positions[3] = UnityEngine.Random.Range(0, 7);
+            positions[7] = UnityEngine.Random.Range(0, 7);
+
+            //Check that they aren't on already owned spaces
+            bool horse1Safe = checkPieceSafe(positions, 2);
+            bool horse2Safe = checkPieceSafe(positions, 3);
+            bool queenSafe = checkPieceSafe(positions, 7);
+
+            if (!horse1Safe) continue;
+            if (!horse2Safe) continue;
+            if (!queenSafe) continue;
+
+            othersPlaced = true;
+
+        } while (!othersPlaced);
+
+
+        //Order goes tower1, tower2, horse1, horse2, bishop1, bishop2, king, queen
+        //Spawn white pieces
+        spawnPiece("Tower", -1, new Coordinate(positions[0], 7));
+        spawnPiece("Horse", -1, new Coordinate(positions[2], 7));
+        spawnPiece("Bishop", -1, new Coordinate(positions[4], 7));
+        spawnPiece("King", -1, new Coordinate(positions[6], 7));
+        spawnPiece("Queen", -1, new Coordinate(positions[7], 7));
+        spawnPiece("Bishop", -1, new Coordinate(positions[5], 7));
+        spawnPiece("Horse", -1, new Coordinate(positions[3], 7));
+        spawnPiece("Tower", -1, new Coordinate(positions[1], 7));
+
+        //Spawn black pieces
+        spawnPiece("Tower", 1, new Coordinate(positions[0], 0));
+        spawnPiece("Horse", 1, new Coordinate(positions[2], 0));
+        spawnPiece("Bishop", 1, new Coordinate(positions[4], 0));
+        spawnPiece("King", 1, new Coordinate(positions[6], 0));
+        spawnPiece("Queen", 1, new Coordinate(positions[7], 0));
+        spawnPiece("Bishop", 1, new Coordinate(positions[5], 0));
+        spawnPiece("Horse", 1, new Coordinate(positions[3], 0));
+        spawnPiece("Tower", 1, new Coordinate(positions[1], 0));
     }
 
     /*
