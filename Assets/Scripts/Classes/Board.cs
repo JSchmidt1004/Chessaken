@@ -39,6 +39,9 @@ public class Board : MonoBehaviour {
     TextMesh win_txt;
 
     [SerializeField]
+    GameObject start_ui;
+
+    [SerializeField]
     List<Theme> themes = new List<Theme>();
 
     [SerializeField]
@@ -52,16 +55,25 @@ public class Board : MonoBehaviour {
 
     [SerializeField]
     List<Piece> pieces = new List<Piece>(); // List of all pieces in the game (32)
+
+    //This is no longer necessary, but I left it so that the next person doesn't have to re-add them
+    //Same with the hidden pieces in the scene
     [SerializeField]
     List<Piece> piecesCopy = new List<Piece>(); // List of all pieces in the game (32)
 
     [SerializeField]
     List<Piece> piecePrefabs = new List<Piece>(); // List of all of the piece prefabs (12)
 
-    [SerializeField]
-    BoardSetupType board_setup = BoardSetupType.Chess960;
+    BoardSetupType board_setup;
 
-    void Start() {
+    public void StartChess(string type)
+    {
+        //Can't pass in an enum from a button onClick, so set based on the string passed
+        if (type == "Basic") board_setup = BoardSetupType.Basic;
+        else if (type == "Chess960") board_setup = BoardSetupType.Chess960;
+
+        start_ui.SetActive(false);
+
         setBoardTheme();
         addSquareCoordinates(); // Add "local" coordinates to all squares
         spawnPieces();
@@ -72,7 +84,7 @@ public class Board : MonoBehaviour {
     ---------------
     Squares related functions
     ---------------
-    */ 
+    */
     // Returns closest square to the given position
     public Square getClosestSquare(Vector3 pos) {
         Square square = squares[0];
@@ -291,7 +303,7 @@ public class Board : MonoBehaviour {
         return null;
     }
 
-    private bool checkPieceSafe(int[] positions, int pieceToCheck)
+    public static bool checkPieceSafe(int[] positions, int pieceToCheck)
     {
         for(int i = 0; i < positions.Length; i++)
         {
@@ -364,6 +376,12 @@ public class Board : MonoBehaviour {
         spawnPiece("Tower", 1, new Coordinate(7, 0));
     }
 
+    /*
+    ---------------
+    Chess 960 related functions
+    ---------------
+    */
+
     private void spawn960()
     {
         //Coord goes 0-7, from top right being (0,0) to bottom left being (7,7)
@@ -377,12 +395,7 @@ public class Board : MonoBehaviour {
         }
 
         //Spawn Rooks
-        do
-        {
-            positions[0] = UnityEngine.Random.Range(0, 8);
-            positions[1] = UnityEngine.Random.Range(0, 8);
-
-        } while (Math.Abs(positions[0] - positions[1]) < 2);
+        getRookLocations(positions);
 
 
         //Spawn King
@@ -391,46 +404,26 @@ public class Board : MonoBehaviour {
 
 
         //Spawn Bishops
-        bool bishopsPlaced = false;
-        do
-        {
-            positions[4] = UnityEngine.Random.Range(0, 8);
-            positions[5] = UnityEngine.Random.Range(0, 8);
-
-            //Check that they aren't on already owned spaces
-            bool bishop1Safe = checkPieceSafe(positions, 4);
-            bool bishop2Safe = checkPieceSafe(positions, 5);
-
-            if (!bishop1Safe) continue;
-            if (!bishop2Safe) continue;
-
-            //Check that they're on different tiles
-            if ((positions[4] % 2 != positions[5] % 2)) bishopsPlaced = true;
-
-        } while (!bishopsPlaced);
-
+        getBishopLocations(positions);
 
         //Spawn the rest
         bool othersPlaced = false;
         do
         {
-            positions[2] = UnityEngine.Random.Range(0, 7);
-            positions[3] = UnityEngine.Random.Range(0, 7);
-            positions[7] = UnityEngine.Random.Range(0, 7);
+            positions[2] = UnityEngine.Random.Range(0, 8);
+            positions[3] = UnityEngine.Random.Range(0, 8);
+            positions[7] = UnityEngine.Random.Range(0, 8);
 
             //Check that they aren't on already owned spaces
             bool horse1Safe = checkPieceSafe(positions, 2);
             bool horse2Safe = checkPieceSafe(positions, 3);
             bool queenSafe = checkPieceSafe(positions, 7);
 
-            if (!horse1Safe) continue;
-            if (!horse2Safe) continue;
-            if (!queenSafe) continue;
+            if (!horse1Safe || !horse2Safe || !queenSafe) continue;
 
             othersPlaced = true;
 
         } while (!othersPlaced);
-
 
         //Order goes tower1, tower2, horse1, horse2, bishop1, bishop2, king, queen
         //Spawn white pieces
@@ -453,6 +446,65 @@ public class Board : MonoBehaviour {
         spawnPiece("Horse", 1, new Coordinate(positions[3], 0));
         spawnPiece("Tower", 1, new Coordinate(positions[1], 0));
     }
+
+    public static void getRookLocations(int[] positions)
+    {
+        do
+        {
+            positions[0] = UnityEngine.Random.Range(0, 8);
+            positions[1] = UnityEngine.Random.Range(0, 8);
+
+        } while (Math.Abs(positions[0] - positions[1]) < 2);
+    }
+
+    public static void getBishopLocations(int[] positions)
+    {
+        bool bishopsPlaced = false;
+        do
+        {
+            positions[4] = UnityEngine.Random.Range(0, 8);
+            positions[5] = UnityEngine.Random.Range(0, 8);
+
+            //Check that they aren't on already owned spaces
+            bool bishop1Safe = checkPieceSafe(positions, 4);
+            bool bishop2Safe = checkPieceSafe(positions, 5);
+
+            if (!bishop1Safe || !bishop2Safe) continue;
+
+            //Check that they're on different tiles
+            if ((positions[4] % 2 != positions[5] % 2)) bishopsPlaced = true;
+
+        } while (!bishopsPlaced);
+    }
+
+    public static bool getOtherLocations(int[] positions)
+    {
+        int loopCount = 0;
+        bool othersPlaced = false;
+
+        do
+        {
+            loopCount++;
+            if (loopCount > 999) return false;
+
+            positions[2] = UnityEngine.Random.Range(0, 8);
+            positions[3] = UnityEngine.Random.Range(0, 8);
+            positions[7] = UnityEngine.Random.Range(0, 8);
+
+            //Check that they aren't on already owned spaces
+            bool horse1Safe = checkPieceSafe(positions, 2);
+            bool horse2Safe = checkPieceSafe(positions, 3);
+            bool queenSafe = checkPieceSafe(positions, 7);
+
+            if (!horse1Safe || !horse2Safe || !queenSafe) continue;
+
+            othersPlaced = true;
+
+        } while (!othersPlaced);
+
+        return othersPlaced;
+    }
+
 
     /*
     ---------------
